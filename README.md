@@ -1,39 +1,97 @@
-![logo_ironhack_blue 7](https://user-images.githubusercontent.com/23629340/40541063-a07a0a8a-601a-11e8-91b5-2f13e4e6b441.png)
-
-# PROJECT | Natural Language Processing Challenge
-
-## Introduction
-
-Learning how to process text is a skill required for Data Scientists/AI Engineers. 
-
-In this project, you will put these skills into practice to identify whether a news headline is real or fake news.
+# Natural Language Processing Challenge: Fake vs Real News Classification
 
 ## Project Overview
+This project aims to build a classifier to distinguish between **real and fake news** using the text of news articles. The dataset includes the following columns:
 
-In the file `dataset/data.csv`, you will find a dataset containing news articles with the following columns:
+- `label`: 0 = fake, 1 = real
+- `title`: headline of the article
+- `text`: full article content
+- `subject`: category/topic of the news
+- `date`: publication date
 
-- **`label`**: 0 if the news is fake, 1 if the news is real.
-- **`title`**: The headline of the news article.
-- **`text`**: The full content of the article.
-- **`subject`**: The category or topic of the news.
-- **`date`**: The publication date of the article.
+The goal is to train a model using text embeddings and additional features, and then predict labels for a validation set.
 
-Your goal is to build a classifier that is able to distinguish between the two.
+---
 
-Once you have a classifier built, then use it to predict the labels for `dataset/validation_data.csv`. Generate a new file
-where the label `2` has been replaced by `0` (fake) or `1` (real) according to your model. Please respect the original file format, 
-do not include extra columns, and respect the column separator. 
+## Dataset
+- **Training & Test**: `dataset/data.csv` (split into training and test sets)
+- **Validation**: `dataset/validation_data.csv` (predictions will be saved in the same format)
 
-Please ensure to split the `data.csv` into **training** and **test** datasets before using it for model training or evaluation.
+---
 
-## Guidance
+## Approach
 
-Like in a real life scenario, you are able to make your own choices and text treatment.
-Use the techniques you have learned and the common packages to process this data and classify the text.
+### 1. Data Inspection
+- Checked for missing values and label balance
+- Inspected text length distribution
+- Very little preprocessing required for embeddings
 
-## Deliverables
+### 2. Feature Engineering
+- **Text Embeddings**: Combined `title` + `text` and converted to dense vectors using [SentenceTransformers](https://www.sbert.net/)
+- **Article length**: Numeric feature based on number of tokens
+- **Subject**: One-hot encoded categorical feature
+- Combined features: `[embeddings + length + subject]`
 
-1. **Python Code:** Provide well-documented Python code that conducts the analysis.
-2. **Predictions:** A csv file in the same format as `validation_data.csv` but with the predicted labels (0 or 1)
-3. **Accuracy estimation:** Provide the teacher with your estimation of how your model will perform.
-4. **Presentation:** You will present your model in a 10-minute presentation. Your teacher will provide further instructions.
+### 3. Handling Long Articles
+- Implemented **chunking / sliding window** for articles exceeding token limits
+- Generated embeddings for each chunk, then aggregated (e.g., mean)
+
+### 4. Model Training
+
+#### Baseline Models
+- **Logistic Regression**
+- **Linear Support Vector Classifier (LinearSVC)**
+- Split data into `train/test` sets before evaluation
+- Evaluated using **accuracy, precision, recall, and F1-score**
+
+#### Hyperparameter Tuning
+- Used **GridSearchCV** for Logistic Regression and LinearSVC
+- Important parameters tuned:
+  - Logistic Regression: `C`, `penalty`, `solver`
+  - LinearSVC: `C`, `loss`, `max_iter`
+
+#### Gradient Boosting 
+- Explored `GradientBoostingClassifier`
+---
+
+## Evaluation
+
+Example metrics from LinearSVC (optimized with GridSearchCV):
+
+**Best parameters:**  
+`{'C': 100, 'loss': 'squared_hinge', 'max_iter': 2000}`
+
+**Best CV score:**  
+`0.9609`
+
+**Test Accuracy:**  
+`0.9608`
+
+**Confusion Matrix:**  
+`[[4790 228]`
+`[ 163 4805]]`
+
+
+**Precision:** 0.9547  
+**Recall:** 0.9672  
+**F1-score:** 0.9600
+
+### Interpretation
+- Model performs very well on both classes
+- Balanced precision and recall
+- Accuracy ~96% on test data
+
+## Saving and Reusing Embeddings
+- Precomputed embeddings were saved to `.npy` files
+- This avoids recomputing embeddings for repeated experiments
+
+## Libraries Used
+
+- `numpy`  
+- `pandas`  
+- `scikit-learn`  
+  - `LogisticRegression`  
+  - `LinearSVC`  
+  - `GradientBoostingClassifier`  
+  - `GridSearchCV`  
+- `sentence_transformers` (for generating text embeddings)  
